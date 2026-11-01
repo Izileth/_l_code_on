@@ -1,23 +1,19 @@
-# Code Music Video
+# Code Music Video — Etapa 2
 
-Template inicial de videoclipe vertical feito com HTML, CSS e JavaScript puro.
+Template vertical 9:16 em HTML, CSS e JavaScript puro.
 
 ## Executar
-Abra `index.html` no navegador. Para melhor compatibilidade, use a extensão Live Server no VS Code.
+Abra `index.html` com Live Server no VS Code. Carregue um arquivo de áudio pelo botão na tela e pressione PLAY.
 
 ## Personalizar
 Edite `js/config.js`:
-- `title`: texto da identificação;
+- `title`: identificação da faixa;
 - `accent`: cor de destaque;
-- `lines`: linhas, palavras destacadas, comentários e etiquetas.
+- `lines`: conteúdo e tempo de entrada de cada linha;
+- `commentAt` / `tagAt`: instante em que comentários e etiquetas aparecem;
+- `camera`: keyframes de posição, escala e rotação da câmera.
 
-Use o botão **CARREGAR ÁUDIO** para selecionar uma música local.
+Os tempos são segundos desde o início da música. A animação usa `audio.currentTime`, então pausar, avançar ou retroceder também atualiza a composição.
 
-## Estrutura
-- `css/style.css`: aparência, textura e movimento;
-- `js/config.js`: conteúdo configurável;
-- `js/audio.js`: áudio;
-- `js/animation.js`: geração das linhas;
-- `js/main.js`: inicialização e controles.
-
-Esta é a primeira versão visual. A sincronização precisa com batidas/letra e a exportação MP4 serão etapas posteriores.
+## Limitação desta etapa
+A animação acompanha o tempo da faixa, mas ainda não detecta automaticamente batidas. Exportação de vídeo MP4 será implementada em uma etapa posterior.

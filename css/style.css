@@ -40,8 +40,8 @@ body {
   inset: 0;
   display: flex;
   align-items: center;
-  transform: scale(1.18) rotate(-2deg);
-  animation: camera-drift 16s ease-in-out infinite alternate;
+  transform: translate(0, 0) scale(1.02) rotate(-1deg);
+  will-change: transform;
 }
 
 .code-lines {
@@ -66,7 +66,11 @@ body {
   letter-spacing: -.075em;
   color: var(--foreground);
   text-shadow: 0 0 18px rgba(255,255,255,.18);
+  opacity: 0;
+  transition: opacity .25s ease;
 }
+
+.code-line.is-visible { opacity: 1; }
 
 .code-line .plain { color: var(--foreground); }
 .code-line .accent { color: var(--accent); }
@@ -76,8 +80,11 @@ body {
   font-size: .48em;
   font-weight: 400;
   letter-spacing: -.035em;
-  opacity: .88;
+  opacity: 0;
+  transition: opacity .35s ease;
 }
+
+.comment.is-visible { opacity: .88; }
 
 .tag {
   position: absolute;
@@ -91,7 +98,11 @@ body {
   line-height: 1.1;
   letter-spacing: -.02em;
   box-shadow: 0 4px 20px rgba(237,18,59,.22);
+  opacity: 0;
+  transition: opacity .3s ease;
 }
+
+.tag.is-visible { opacity: 1; }
 
 .cursor {
   display: inline-block;
