@@ -1,30 +1,68 @@
-// Edite este arquivo para criar um novo videoclipe.
-// Os tempos são em segundos e acompanham a música carregada.
+// CONFIGURAÇÃO DO VÍDEO
+// Os tempos são em segundos, contados desde o início da música.
 const VIDEO_CONFIG = {
-  title: "VISUAL EXPERIMENT / 001",
+  title: "VISUAL EXPERIMENT / 003",
   accent: "#ed123b",
 
-  // Cada linha começa a ser digitada no segundo indicado.
-  // O comentário aparece separadamente em commentAt.
-  lines: [
-    { start: 0.0,  text: "const ", highlight: "gossip", rest: " = () => {", comment: "everybody is listening", commentAt: 2.2 },
-    { start: 3.0,  text: "  everyone ", highlight: "talks", rest: " about it;", comment: "don't tell anyone", commentAt: 5.0, tag: "jack", tagAt: 5.8 },
-    { start: 6.5,  text: "  the ", highlight: "story", rest: " keeps moving;" },
-    { start: 9.0,  text: "  words become ", highlight: "noise", rest: "...", comment: "too loud to ignore", commentAt: 11.0 },
-    { start: 12.0, text: "  return ", highlight: "repeat", rest: "(gossip);", comment: "no way back", commentAt: 14.2 },
-    { start: 15.5, text: "};", cursor: true },
-    { start: 18.0, text: "while (", highlight: "true", rest: ") {" },
-    { start: 20.0, text: "  say(", highlight: "nothing", rest: ");", comment: "silence is also an answer", commentAt: 22.0 },
-    { start: 24.0, text: "}", cursor: true }
-  ],
-
-  // A câmera interpola entre estes pontos usando o tempo da música.
-  camera: [
-    { at: 0,  x: 0,   y: 0,   scale: 1.02, rotate: -1.0 },
-    { at: 5,  x: -3,  y: -2,  scale: 1.10, rotate: -1.8 },
-    { at: 10, x: 2,   y: -5,  scale: 1.18, rotate: -0.8 },
-    { at: 16, x: 5,   y: 1,   scale: 1.28, rotate: 0.5 },
-    { at: 22, x: -4,  y: 3,   scale: 1.16, rotate: -1.5 },
-    { at: 28, x: 0,   y: 0,   scale: 1.08, rotate: 0 }
+  scenes: [
+    {
+      type: "code",
+      start: 0,
+      end: 7,
+      transition: "blur",
+      camera: [
+        { at: 0, x: 0, y: 0, scale: 1.05, rotate: -1 },
+        { at: 7, x: -3, y: -2, scale: 1.18, rotate: 1 }
+      ],
+      lines: [
+        { at: 0.2, text: "const ", highlight: "gossip", rest: " = () => {" },
+        { at: 1.1, text: "  everyone ", highlight: "talks", rest: " about it;", comment: "don't tell anyone", commentAt: 3.0, tag: "jack", tagAt: 4.0 },
+        { at: 4.2, text: "  return ", highlight: "repeat", rest: "(gossip);" },
+        { at: 5.7, text: "};", cursor: true }
+      ]
+    },
+    {
+      type: "phrase",
+      start: 7,
+      end: 11,
+      transition: "glitch",
+      camera: [
+        { at: 7, x: 0, y: 0, scale: 1.0, rotate: 0 },
+        { at: 11, x: 2, y: -1, scale: 1.12, rotate: -1 }
+      ],
+      eyebrow: "THE STORY",
+      text: "EVERYBODY",
+      highlight: "IS WATCHING",
+      smallText: "and nobody knows who started it."
+    },
+    {
+      type: "code",
+      start: 11,
+      end: 17,
+      transition: "blur",
+      camera: [
+        { at: 11, x: 2, y: 0, scale: 1.15, rotate: 1 },
+        { at: 17, x: -2, y: 2, scale: 1.28, rotate: -1 }
+      ],
+      lines: [
+        { at: 11.2, text: "if (", highlight: "secret", rest: ") {" },
+        { at: 12.1, text: "  spread(", highlight: "rumors", rest: ");", comment: "too late", commentAt: 14.0 },
+        { at: 15.0, text: "}", cursor: true }
+      ]
+    },
+    {
+      type: "phrase",
+      start: 17,
+      end: 23,
+      transition: "glitch",
+      camera: [
+        { at: 17, x: -2, y: 1, scale: 1.0, rotate: 0 },
+        { at: 23, x: 0, y: -2, scale: 1.16, rotate: 1 }
+      ],
+      eyebrow: "NO WAY BACK",
+      text: "WORDS",
+      highlight: "BECOME NOISE",
+      smallText: "the echo outlives the truth."
+    }
   ]
 };

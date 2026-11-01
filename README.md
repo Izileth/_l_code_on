@@ -1,19 +1,23 @@
-# Code Music Video — Etapa 2
+# Code Music Video — Etapa 3
 
 Template vertical 9:16 em HTML, CSS e JavaScript puro.
 
 ## Executar
-Abra `index.html` com Live Server no VS Code. Carregue um arquivo de áudio pelo botão na tela e pressione PLAY.
+Abra `index.html` com Live Server no VS Code. Carregue um áudio local e pressione PLAY.
 
-## Personalizar
-Edite `js/config.js`:
-- `title`: identificação da faixa;
-- `accent`: cor de destaque;
-- `lines`: conteúdo e tempo de entrada de cada linha;
-- `commentAt` / `tagAt`: instante em que comentários e etiquetas aparecem;
-- `camera`: keyframes de posição, escala e rotação da câmera.
+## Correção do áudio
+A nova rotina pausa a faixa anterior, limpa a fonte antiga, aguarda `loadedmetadata` e só então libera a reprodução. O botão fica desabilitado durante a importação. AbortError decorrente de troca de fonte é tratado como cancelamento esperado.
 
-Os tempos são segundos desde o início da música. A animação usa `audio.currentTime`, então pausar, avançar ou retroceder também atualiza a composição.
+## Cenas
+Edite `js/config.js`. Cada cena possui:
+- `type`: `code` ou `phrase`;
+- `start` e `end`: intervalo da cena em segundos;
+- `transition`: `blur` ou `glitch`;
+- `camera`: keyframes com `at`, `x`, `y`, `scale` e `rotate`;
+- `lines`: conteúdo de cenas de código;
+- `eyebrow`, `text`, `highlight`, `smallText`: conteúdo de cenas tipográficas.
 
-## Limitação desta etapa
-A animação acompanha o tempo da faixa, mas ainda não detecta automaticamente batidas. Exportação de vídeo MP4 será implementada em uma etapa posterior.
+Os tempos são relativos ao início da música. A câmera interpola suavemente entre os keyframes.
+
+## Próximas melhorias
+Detecção automática de batidas, editor visual de timeline e exportação MP4.

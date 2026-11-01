@@ -10,11 +10,9 @@
   <main class="stage" id="stage">
     <div class="grain"></div>
     <div class="vignette"></div>
-    <section class="code-scene" id="codeScene" aria-label="Cena tipográfica">
-      <div class="code-lines" id="codeLines"></div>
-    </section>
+    <section class="scene-content" id="sceneContent" aria-label="Cenas do videoclipe"></section>
     <div class="scene-meta">
-      <span id="trackLabel">VISUAL EXPERIMENT / 001</span>
+      <span id="trackLabel">VISUAL EXPERIMENT / 003</span>
       <span id="timeLabel">00:00</span>
     </div>
     <div class="controls">
@@ -22,7 +20,7 @@
       <input id="audioFile" type="file" accept="audio/*" aria-label="Selecionar música">
       <label for="audioFile">CARREGAR ÁUDIO</label>
     </div>
-    <audio id="audio"></audio>
+    <audio id="audio" preload="metadata"></audio>
   </main>
   <script src="js/config.js"></script>
   <script src="js/audio.js"></script>
