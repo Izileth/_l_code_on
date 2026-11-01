@@ -56,6 +56,7 @@ const Animation = (() => {
   }
 
   function build(config) {
+    if (!stage) return;
     stage.replaceChildren();
     sceneElements = [];
 
@@ -70,6 +71,7 @@ const Animation = (() => {
   }
 
   function typeProgress(text, progress) {
+    if (!text) return "";
     const count = Math.max(0, Math.min(text.length, Math.floor(text.length * progress)));
     return text.slice(0, count);
   }
@@ -82,10 +84,13 @@ const Animation = (() => {
     let a = points[0], b = points[points.length - 1];
     for (let i = 0; i < points.length - 1; i++) {
       if (time >= points[i].at && time <= points[i + 1].at) {
-        a = points[i]; b = points[i + 1]; break;
+        a = points[i];
+        b = points[i + 1];
+        break;
       }
     }
-    const raw = (time - a.at) / (b.at - a.at);
+    const duration = (b.at - a.at) || 0.001;
+    const raw = Math.max(0, Math.min(1, (time - a.at) / duration));
     const t = raw * raw * (3 - 2 * raw);
     return {
       x: a.x + (b.x - a.x) * t,
@@ -95,7 +100,7 @@ const Animation = (() => {
     };
   }
 
-  function update(time, config) {
+  function update(time, config, reactiveEnergy = 0) {
     let activeScene = null;
 
     sceneElements.forEach((scene) => {
@@ -113,15 +118,17 @@ const Animation = (() => {
         item.row.classList.toggle("is-visible", visible);
         item.prefix.textContent = visible ? typeProgress(line.text || "", progress) : "";
         item.highlight.textContent = progress >= 0.35
-          ? typeProgress(line.highlight || "", Math.max(0, (progress - 0.35) / 0.65)) : "";
+          ? typeProgress(line.highlight || "", Math.max(0, (progress - 0.35) / 0.65))
+          : "";
         item.suffix.textContent = progress >= 0.68
-          ? typeProgress(line.rest || "", Math.max(0, (progress - 0.68) / 0.32)) : "";
+          ? typeProgress(line.rest || "", Math.max(0, (progress - 0.68) / 0.32))
+          : "";
 
-        const commentVisible = line.comment && time >= (line.commentAt ?? line.at + duration);
+        const commentVisible = line.comment && time >= (line.commentAt ?? (line.at + duration * 0.8));
         item.comment.textContent = commentVisible ? `// ${line.comment}` : "";
         item.comment.classList.toggle("is-visible", Boolean(commentVisible));
 
-        const tagVisible = line.tag && time >= (line.tagAt ?? line.at + duration);
+        const tagVisible = line.tag && time >= (line.tagAt ?? (line.at + duration * 0.9));
         item.tag.classList.toggle("is-visible", Boolean(tagVisible));
         item.cursor.style.display = line.cursor && visible ? "inline-block" : "none";
       });
@@ -129,8 +136,10 @@ const Animation = (() => {
 
     if (activeScene) {
       const camera = cameraAt(activeScene.config.camera, time);
+      // Efeito sutil de grave pulsante no scale da câmera
+      const kick = reactiveEnergy > 0.35 ? (reactiveEnergy - 0.35) * 0.08 : 0;
       activeScene.wrapper.style.transform =
-        `translate(${camera.x}%, ${camera.y}%) scale(${camera.scale}) rotate(${camera.rotate}deg)`;
+        `translate(${camera.x}%, ${camera.y}%) scale(${camera.scale + kick}) rotate(${camera.rotate}deg)`;
     }
   }
 

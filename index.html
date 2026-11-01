@@ -10,19 +10,135 @@
   <main class="stage" id="stage">
     <div class="grain"></div>
     <div class="vignette"></div>
+
+    <!-- Indicador de arrastar e soltar -->
+    <div class="drop-overlay" id="dropOverlay">
+      <div class="drop-box">
+        <span class="drop-icon">♬</span>
+        <span class="drop-title">SOLTE O ÁUDIO AQUI</span>
+        <span class="drop-sub">Gera letras e vídeo automaticamente</span>
+      </div>
+    </div>
+
     <section class="scene-content" id="sceneContent" aria-label="Cenas do videoclipe"></section>
+
+    <!-- Metadados da faixa -->
     <div class="scene-meta">
       <span id="trackLabel">VISUAL EXPERIMENT / 003</span>
-      <span id="timeLabel">00:00</span>
+      <span id="timeLabel">00:00 / 00:00</span>
     </div>
+
+    <!-- Linha do tempo interativa -->
+    <div class="timeline-container" id="timelineContainer" title="Clique para navegar na música">
+      <div class="timeline-track">
+        <div class="timeline-fill" id="timelineFill"></div>
+      </div>
+    </div>
+
+    <!-- Controles principais -->
     <div class="controls">
-      <button id="playButton" type="button">PLAY</button>
-      <input id="audioFile" type="file" accept="audio/*" aria-label="Selecionar música">
-      <label for="audioFile">CARREGAR ÁUDIO</label>
+      <button id="playButton" type="button" title="Reproduzir ou Pausar">PLAY</button>
+      <input id="audioFile" type="file" accept="audio/*" aria-label="Selecionar arquivo de música">
+      <label for="audioFile" id="audioFileLabel" title="Anexar arquivo de áudio">CARREGAR ÁUDIO</label>
+      <button id="lyricsButton" type="button" title="Gerar ou editar letras sincronizadas">GERAR LETRAS</button>
     </div>
+
+    <!-- Notificações Toast -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <audio id="audio" preload="metadata"></audio>
   </main>
+
+  <!-- Modal do Gerador e Sincronizador de Letras -->
+  <div class="modal" id="lyricsModal" hidden>
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-tag">AUDIO-TO-LYRICS GENERATOR</div>
+        <h2 class="modal-title">GERADOR DE LETRAS & CENAS</h2>
+        <button type="button" class="modal-close-btn" id="closeModalBtn" aria-label="Fechar">&times;</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button type="button" class="tab-btn active" data-tab="tab-auto">GERAÇÃO AUTOMÁTICA</button>
+        <button type="button" class="tab-btn" data-tab="tab-custom">COLAR LETRA / LRC</button>
+        <button type="button" class="tab-btn" data-tab="tab-scenes">CENAS (<span id="sceneCount">0</span>)</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Aba 1: Geração Automática -->
+        <div class="tab-panel active" id="tab-auto">
+          <p class="tab-description">
+            O gerador analisa o áudio anexado, detecta batidas e picos de energia, e produz cenas dinâmicas de código e frases tipográficas para <strong>toda a duração da música</strong>.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" for="themeSelect">TEMA VISUAL:</label>
+            <select id="themeSelect" class="form-select">
+              <option value="cyber">Cyberpunk Terminal & Código</option>
+              <option value="music">Sintetizador & Audio DSP</option>
+              <option value="minimal">Minimalista & Linhas Claras</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">COR DE DESTAQUE (ACCENT):</label>
+            <div class="color-row">
+              <button type="button" class="color-dot active" data-color="#ed123b" style="background:#ed123b"></button>
+              <button type="button" class="color-dot" data-color="#00ff88" style="background:#00ff88"></button>
+              <button type="button" class="color-dot" data-color="#00e5ff" style="background:#00e5ff"></button>
+              <button type="button" class="color-dot" data-color="#ffb703" style="background:#ffb703"></button>
+              <button type="button" class="color-dot" data-color="#d90429" style="background:#d90429"></button>
+              <button type="button" class="color-dot" data-color="#9d4edd" style="background:#9d4edd"></button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-action primary" id="btnAutoGenerate">
+            ⚡ GERAR CENAS DO ÁUDIO
+          </button>
+        </div>
+
+        <!-- Aba 2: Colar Letra Personalizada ou Arquivo LRC -->
+        <div class="tab-panel" id="tab-custom">
+          <p class="tab-description">
+            Cole a letra da sua música ou carregue um arquivo <strong>.LRC</strong> sincronizado. Versos viram linhas de código animadas e refrões viram frases tipográficas de impacto.
+          </p>
+
+          <div class="form-group">
+            <div class="label-with-action">
+              <label class="form-label" for="lyricsInput">LETRA OU FORMATO LRC:</label>
+              <label for="lrcFileInput" class="btn-link">📁 Importar .lrc / .txt</label>
+              <input type="file" id="lrcFileInput" accept=".lrc,.txt" style="display:none">
+            </div>
+            <textarea id="lyricsInput" class="form-textarea" rows="8" placeholder="[Verse 1]&#10;Cole os versos da sua música aqui...&#10;&#10;[Chorus]&#10;O REFRÃO EM CAIXA ALTA EXPLODE NA TELA"></textarea>
+          </div>
+
+          <div class="actions-row">
+            <button type="button" class="btn-action secondary" id="btnSpeechToText" title="Usar reconhecimento de voz do navegador">
+              🎙️ DITAR / VOZ
+            </button>
+            <button type="button" class="btn-action primary" id="btnApplyCustomLyrics">
+              SINCRONIZAR COM O ÁUDIO & APLICAR
+            </button>
+          </div>
+        </div>
+
+        <!-- Aba 3: Lista de Cenas Geradas -->
+        <div class="tab-panel" id="tab-scenes">
+          <div class="scenes-list" id="scenesList">
+            <p class="empty-msg">Nenhuma cena gerada ainda.</p>
+          </div>
+          <div class="actions-row">
+            <button type="button" class="btn-action secondary" id="btnExportJson">COPIAR JSON</button>
+            <button type="button" class="btn-action primary" id="btnApplyScenes">APLICAR AO VÍDEO</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/config.js"></script>
+  <script src="js/generator.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/animation.js"></script>
   <script src="js/main.js"></script>
