@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Music Video</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="grain"></div>
+    <div class="vignette"></div>
+    <section class="code-scene" id="codeScene" aria-label="Cena tipográfica">
+      <div class="code-lines" id="codeLines"></div>
+    </section>
+    <div class="scene-meta">
+      <span id="trackLabel">VISUAL EXPERIMENT / 001</span>
+      <span id="timeLabel">00:00</span>
+    </div>
+    <div class="controls">
+      <button id="playButton" type="button">PLAY</button>
+      <input id="audioFile" type="file" accept="audio/*" aria-label="Selecionar música">
+      <label for="audioFile">CARREGAR ÁUDIO</label>
+    </div>
+    <audio id="audio"></audio>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/animation.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
