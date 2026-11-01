@@ -673,3 +673,320 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ================================================================
+   LYRICS EDITOR — estilos do editor estilo IDE/terminal
+   ================================================================ */
+
+/* Toolbar de seções */
+.le-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 5px 8px;
+  background: #0a0a0a;
+  border: 1px solid rgba(255,255,255,.12);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+}
+
+.le-toolbar-label {
+  font-size: 8px;
+  letter-spacing: .1em;
+  color: var(--muted);
+  margin-right: 2px;
+}
+
+.le-tag-btn {
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.05);
+  color: var(--foreground);
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.le-tag-btn:hover {
+  background: rgba(255,255,255,.14);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Editor wrap — container principal */
+.le-editor-wrap {
+  position: relative;
+  display: flex;
+  background: #080808;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+  min-height: 180px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.le-editor-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+/* Números de linha */
+.le-line-nums {
+  flex-shrink: 0;
+  width: 32px;
+  padding: 8px 0;
+  background: #040404;
+  border-right: 1px solid rgba(255,255,255,.07);
+  color: rgba(255,255,255,.22);
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: right;
+  overflow: hidden;
+  user-select: none;
+}
+
+.le-ln {
+  padding: 0 6px 0 0;
+}
+
+/* Camada de highlight (sintaxe) */
+.le-highlight {
+  position: absolute;
+  top: 0;
+  left: 32px;
+  right: 0;
+  bottom: 0;
+  padding: 8px 10px;
+  white-space: pre;
+  word-wrap: normal;
+  overflow: hidden;
+  pointer-events: none;
+  color: transparent;
+  line-height: 1.6;
+  font-size: 11px;
+  font-family: var(--font-code);
+}
+
+/* Cores de sintaxe do highlight */
+.le-ts         { color: var(--accent); opacity: .8; }
+.le-lrc-line   { color: var(--foreground); }
+.le-sec-bracket{ color: var(--muted); }
+.le-sec-keyword{ color: var(--accent); font-weight: 700; }
+.le-sec-custom { color: #7dcfff; }
+.le-comment    { color: #5c6370; font-style: italic; }
+.le-word       { color: rgba(232,229,223,.6); }
+.le-lyric-line { color: var(--foreground); }
+
+/* Textarea por cima do highlight */
+.le-textarea {
+  position: relative;
+  flex: 1;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--foreground);
+  caret-color: var(--accent);
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1.6;
+  resize: vertical;
+  white-space: pre;
+  word-wrap: normal;
+  overflow: auto;
+  -webkit-text-fill-color: transparent; /* faz o highlight aparecer por baixo */
+}
+
+/* Fallback: em navegadores que não suportam -webkit-text-fill-color,
+   a textarea fica semi-transparente para o highlight aparecer */
+@supports not (-webkit-text-fill-color: transparent) {
+  .le-textarea {
+    color: rgba(255,255,255,.75);
+    background: transparent;
+  }
+  .le-highlight { display: none; }
+}
+
+.le-textarea::placeholder {
+  -webkit-text-fill-color: rgba(255,255,255,.2);
+  color: rgba(255,255,255,.2);
+}
+
+/* Interim text do reconhecimento de voz */
+.le-interim {
+  display: none;
+  padding: 5px 10px 5px 42px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  color: rgba(180,180,180,.55);
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+  min-height: 24px;
+}
+
+/* ================================================================
+   WAVEFORM — mini waveform canvas na aba de geração
+   ================================================================ */
+.waveform-wrap {
+  margin-bottom: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+#waveformCanvas {
+  display: block;
+  width: 100%;
+  height: 60px;
+}
+
+/* ================================================================
+   BARRA DE PROGRESSO DA GERAÇÃO
+   ================================================================ */
+.gen-progress-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  height: 20px;
+  background: rgba(255,255,255,.06);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.1);
+}
+
+.gen-progress-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width .05s linear;
+  opacity: .85;
+}
+
+.gen-progress-label {
+  position: relative;
+  z-index: 1;
+  padding-left: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.8);
+}
+
+/* ================================================================
+   BADGE DE STATUS DO ÁUDIO NO MODAL HEADER
+   ================================================================ */
+.audio-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  margin-top: 4px;
+  border: 1px solid transparent;
+  transition: background .2s, border-color .2s;
+}
+
+.audio-status-badge.no-audio {
+  background: rgba(220, 50, 50, .15);
+  border-color: rgba(220, 50, 50, .35);
+  color: #ff6b6b;
+}
+
+.audio-status-badge.has-audio {
+  background: rgba(0, 200, 100, .12);
+  border-color: rgba(0, 200, 100, .3);
+  color: #3ddc84;
+}
+
+.audio-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.no-audio .audio-status-dot {
+  background: #ff6b6b;
+}
+
+.has-audio .audio-status-dot {
+  background: #3ddc84;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(0.7); }
+}
+
+/* ================================================================
+   COR PERSONALIZADA — input[type=color] disfarçado de dot
+   ================================================================ */
+.color-dot-custom {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .15s, border-color .15s;
+  display: inline-block;
+}
+
+.color-dot-custom:hover {
+  transform: scale(1.1);
+  border-color: rgba(255,255,255,.7);
+}
+
+/* ================================================================
+   BOTÃO "▶ PULAR" NOS SCENE ITEMS
+   ================================================================ */
+.scene-item-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.scene-jump-btn {
+  padding: 3px 10px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 3px;
+  color: var(--foreground);
+  font-family: var(--font-code);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.scene-jump-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

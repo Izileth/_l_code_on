@@ -55,7 +55,12 @@
     <div class="modal-window">
       <div class="modal-header">
         <div class="modal-tag">AUDIO-TO-LYRICS GENERATOR</div>
-        <h2 class="modal-title">GERADOR DE LETRAS & CENAS</h2>
+        <h2 class="modal-title">GERADOR DE LETRAS &amp; CENAS</h2>
+        <!-- Badge de status do áudio -->
+        <div class="audio-status-badge" id="audioStatusBadge">
+          <span class="audio-status-dot"></span>
+          <span class="audio-status-text" id="audioStatusText">SEM ÁUDIO</span>
+        </div>
         <button type="button" class="modal-close-btn" id="closeModalBtn" aria-label="Fechar">&times;</button>
       </div>
 
@@ -75,9 +80,9 @@
           <div class="form-group">
             <label class="form-label" for="themeSelect">TEMA VISUAL:</label>
             <select id="themeSelect" class="form-select">
-              <option value="cyber">Cyberpunk Terminal & Código</option>
-              <option value="music">Sintetizador & Audio DSP</option>
-              <option value="minimal">Minimalista & Linhas Claras</option>
+              <option value="cyber">Cyberpunk Terminal &amp; Código</option>
+              <option value="music">Sintetizador &amp; Audio DSP</option>
+              <option value="minimal">Minimalista &amp; Linhas Claras</option>
             </select>
           </div>
 
@@ -90,7 +95,22 @@
               <button type="button" class="color-dot" data-color="#ffb703" style="background:#ffb703"></button>
               <button type="button" class="color-dot" data-color="#d90429" style="background:#d90429"></button>
               <button type="button" class="color-dot" data-color="#9d4edd" style="background:#9d4edd"></button>
+              <!-- Cor personalizada -->
+              <label class="color-dot color-dot-custom" title="Cor personalizada" style="background: conic-gradient(red,yellow,lime,cyan,blue,magenta,red);">
+                <input type="color" id="customColorPicker" value="#ed123b" style="opacity:0;width:0;height:0;position:absolute;">
+              </label>
             </div>
+          </div>
+
+          <!-- Canvas do Waveform -->
+          <div class="waveform-wrap" id="waveformWrap" style="display:none;">
+            <canvas id="waveformCanvas" width="400" height="60"></canvas>
+          </div>
+
+          <!-- Barra de progresso da geração -->
+          <div class="gen-progress-wrap" id="genProgressWrap" style="display:none;">
+            <div class="gen-progress-bar" id="genProgressBar"></div>
+            <span class="gen-progress-label" id="genProgressLabel">0%</span>
           </div>
 
           <button type="button" class="btn-action primary" id="btnAutoGenerate">
@@ -106,19 +126,50 @@
 
           <div class="form-group">
             <div class="label-with-action">
-              <label class="form-label" for="lyricsInput">LETRA OU FORMATO LRC:</label>
+              <label class="form-label">LETRA OU FORMATO LRC:</label>
               <label for="lrcFileInput" class="btn-link">📁 Importar .lrc / .txt</label>
               <input type="file" id="lrcFileInput" accept=".lrc,.txt" style="display:none">
             </div>
-            <textarea id="lyricsInput" class="form-textarea" rows="8" placeholder="[Verse 1]&#10;Cole os versos da sua música aqui...&#10;&#10;[Chorus]&#10;O REFRÃO EM CAIXA ALTA EXPLODE NA TELA"></textarea>
+
+            <!-- Toolbar de seções -->
+            <div class="le-toolbar">
+              <span class="le-toolbar-label">INSERIR:</span>
+              <button type="button" class="le-tag-btn" data-section="Verse">Verse</button>
+              <button type="button" class="le-tag-btn" data-section="Chorus">Chorus</button>
+              <button type="button" class="le-tag-btn" data-section="Bridge">Bridge</button>
+              <button type="button" class="le-tag-btn" data-section="Intro">Intro</button>
+              <button type="button" class="le-tag-btn" data-section="Outro">Outro</button>
+            </div>
+
+            <!-- Editor estilo IDE -->
+            <div class="le-editor-wrap" id="leEditorWrap">
+              <div class="le-line-nums" aria-hidden="true"></div>
+              <div class="le-highlight" aria-hidden="true"></div>
+              <textarea
+                class="le-textarea"
+                id="leTextarea"
+                rows="8"
+                spellcheck="false"
+                autocorrect="off"
+                autocapitalize="off"
+                placeholder="[Verse 1]&#10;Cole os versos da sua música aqui...&#10;&#10;[Chorus]&#10;O REFRÃO EM CAIXA ALTA EXPLODE NA TELA"
+              ></textarea>
+            </div>
+            <!-- Overlay de texto interim do reconhecimento de voz -->
+            <div class="le-interim" id="leInterim"></div>
           </div>
 
           <div class="actions-row">
             <button type="button" class="btn-action secondary" id="btnSpeechToText" title="Usar reconhecimento de voz do navegador">
               🎙️ DITAR / VOZ
             </button>
+            <button type="button" class="btn-action secondary" id="btnImportFromAudio" title="Transcrever áudio carregado com timestamps LRC">
+              🔄 IMPORTAR DE ÁUDIO
+            </button>
+          </div>
+          <div class="actions-row" style="margin-top:6px;">
             <button type="button" class="btn-action primary" id="btnApplyCustomLyrics">
-              SINCRONIZAR COM O ÁUDIO & APLICAR
+              SINCRONIZAR COM O ÁUDIO &amp; APLICAR
             </button>
           </div>
         </div>
@@ -141,6 +192,7 @@
   <script src="js/generator.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/animation.js"></script>
+  <script src="js/lyrics-editor.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

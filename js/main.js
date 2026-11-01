@@ -20,16 +20,24 @@
   const tabButtons = document.querySelectorAll(".modal-tabs .tab-btn");
   const tabPanels = document.querySelectorAll(".modal-body .tab-panel");
   const themeSelect = document.getElementById("themeSelect");
-  const colorDots = document.querySelectorAll(".color-dot");
+  const colorDots = document.querySelectorAll(".color-dot:not(.color-dot-custom)");
+  const customColorPicker = document.getElementById("customColorPicker");
   const btnAutoGenerate = document.getElementById("btnAutoGenerate");
-  const lyricsInput = document.getElementById("lyricsInput");
   const lrcFileInput = document.getElementById("lrcFileInput");
   const btnApplyCustomLyrics = document.getElementById("btnApplyCustomLyrics");
   const btnSpeechToText = document.getElementById("btnSpeechToText");
+  const btnImportFromAudio = document.getElementById("btnImportFromAudio");
   const btnExportJson = document.getElementById("btnExportJson");
   const btnApplyScenes = document.getElementById("btnApplyScenes");
   const sceneCountLabel = document.getElementById("sceneCount");
   const scenesList = document.getElementById("scenesList");
+  const audioStatusBadge = document.getElementById("audioStatusBadge");
+  const audioStatusText = document.getElementById("audioStatusText");
+  const waveformWrap = document.getElementById("waveformWrap");
+  const waveformCanvas = document.getElementById("waveformCanvas");
+  const genProgressWrap = document.getElementById("genProgressWrap");
+  const genProgressBar = document.getElementById("genProgressBar");
+  const genProgressLabel = document.getElementById("genProgressLabel");
 
   // Estado da aplicação
   let currentConfig = { ...VIDEO_CONFIG };
@@ -38,6 +46,30 @@
   let animationFrame = null;
   let isProcessingAudio = false;
   let toastTimer = null;
+  let currentAudioFile = null;  // referência ao arquivo de áudio carregado
+  let activeRecognition = null; // instância ativa de SpeechRecognition
+
+  // ---- Inicialização do LyricsEditor ----
+  const leEditorWrap = document.getElementById("leEditorWrap");
+  LyricsEditor.init(leEditorWrap);
+
+  // Atalho Ctrl+Enter no textarea para aplicar letras
+  const leTextarea = document.getElementById("leTextarea");
+  if (leTextarea) {
+    leTextarea.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        e.preventDefault();
+        btnApplyCustomLyrics.click();
+      }
+    });
+  }
+
+  // Toolbar de seções: botões [Verse], [Chorus], etc.
+  document.querySelectorAll(".le-tag-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      LyricsEditor.insertSection(btn.dataset.section);
+    });
+  });
 
   // Inicialização inicial
   document.documentElement.style.setProperty("--accent", currentAccent);
@@ -45,6 +77,7 @@
   Animation.build(currentConfig);
   Animation.update(0, currentConfig);
   updateSceneListUI();
+  updateAudioStatusBadge();
 
   // Helper de formatação de tempo (mm:ss)
   function formatTime(seconds) {
@@ -53,6 +86,17 @@
     const m = String(Math.floor(sec / 60)).padStart(2, "0");
     const s = String(sec % 60).padStart(2, "0");
     return `${m}:${s}`;
+  }
+
+  // Formata timestamp para LRC: [mm:ss.xx]
+  function formatLrcTimestamp(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    const mm = String(min).padStart(2, "0");
+    const ss = String(Math.floor(sec)).padStart(2, "0");
+    const cs = String(Math.round((sec % 1) * 100)).padStart(2, "0");
+    return `[${mm}:${ss}.${cs}]`;
   }
 
   // Notificação Toast
@@ -97,11 +141,93 @@
     }
   }
 
+  // Badge de status do áudio no header do modal
+  function updateAudioStatusBadge() {
+    const audioEl = AudioController.getElement();
+    const hasAudio = audioEl && audioEl.src && audioEl.src !== window.location.href;
+    if (hasAudio) {
+      audioStatusBadge.classList.add("has-audio");
+      audioStatusBadge.classList.remove("no-audio");
+      const name = currentAudioFile ? currentAudioFile.name : "ÁUDIO CONECTADO";
+      audioStatusText.textContent = name.length > 22 ? name.slice(0, 20) + "…" : name;
+    } else {
+      audioStatusBadge.classList.remove("has-audio");
+      audioStatusBadge.classList.add("no-audio");
+      audioStatusText.textContent = "SEM ÁUDIO";
+    }
+  }
+
+  // Desenha o waveform da energyProfile no canvas
+  function drawWaveform(energyProfile) {
+    if (!energyProfile || !energyProfile.length) return;
+    const canvas = waveformCanvas;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const barCount = Math.min(energyProfile.length, 120);
+    const step = Math.max(1, Math.floor(energyProfile.length / barCount));
+    const barW = Math.max(1, (W / barCount) - 1);
+    const maxE = Math.max(...energyProfile, 0.001);
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#ed123b";
+
+    for (let i = 0; i < barCount; i++) {
+      const idx = i * step;
+      const val = energyProfile[idx] / maxE;
+      const bh = Math.max(2, val * H);
+      const x = i * (barW + 1);
+      const y = H - bh;
+
+      // Gradient bar
+      const grad = ctx.createLinearGradient(x, y, x, H);
+      grad.addColorStop(0, accent);
+      grad.addColorStop(1, accent + "44");
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, barW, bh);
+    }
+  }
+
+  // Animação de progresso falso de 0→100% durante geração
+  function runFakeProgress(onDone) {
+    genProgressWrap.style.display = "flex";
+    genProgressBar.style.width = "0%";
+    genProgressLabel.textContent = "0%";
+
+    let pct = 0;
+    const interval = setInterval(() => {
+      // Incremento não-linear: rápido no início, lento no fim
+      const remaining = 100 - pct;
+      pct += Math.max(0.5, remaining * 0.04);
+      if (pct >= 98) {
+        pct = 98;
+        clearInterval(interval);
+      }
+      genProgressBar.style.width = `${pct}%`;
+      genProgressLabel.textContent = `${Math.floor(pct)}%`;
+    }, 50);
+
+    return {
+      complete() {
+        clearInterval(interval);
+        genProgressBar.style.width = "100%";
+        genProgressLabel.textContent = "100%";
+        setTimeout(() => {
+          genProgressWrap.style.display = "none";
+          genProgressBar.style.width = "0%";
+          if (onDone) onDone();
+        }, 400);
+      }
+    };
+  }
+
   // Processa arquivo de áudio carregado e gera automaticamente as letras
   async function handleAudioFile(file) {
     if (!file || isProcessingAudio) return;
 
     isProcessingAudio = true;
+    currentAudioFile = file;
     playButton.disabled = true;
     playButton.textContent = "CARREGANDO…";
     stopFrameLoop();
@@ -144,7 +270,14 @@
       timelineFill.style.width = "0%";
       playButton.textContent = "PLAY";
 
+      // Mostra waveform se tivermos energyProfile
+      if (analysis.energyProfile && analysis.energyProfile.length) {
+        waveformWrap.style.display = "block";
+        drawWaveform(analysis.energyProfile);
+      }
+
       updateSceneListUI();
+      updateAudioStatusBadge();
       showToast(`Áudio conectado! ${scenes.length} cenas geradas.`);
     } catch (err) {
       console.error("Erro no processamento do áudio:", err);
@@ -162,7 +295,7 @@
     if (isProcessingAudio) return;
 
     const audioEl = AudioController.getElement();
-    if (!audioEl.src) {
+    if (!audioEl.src || audioEl.src === window.location.href) {
       showToast("Carregue um arquivo de música primeiro!");
       audioFile.click();
       return;
@@ -227,6 +360,8 @@
     playButton.textContent = "PLAY";
     timelineFill.style.width = "100%";
     Animation.update(AudioController.getDuration(), currentConfig);
+    // Parar reconhecimento de voz se ainda estiver ativo
+    stopActiveRecognition();
   });
 
   audioElement.addEventListener("pause", () => {
@@ -270,6 +405,12 @@
   function openModal() {
     lyricsModal.hidden = false;
     updateSceneListUI();
+    updateAudioStatusBadge();
+    // Redesenha o waveform ao abrir (caso o accent tenha mudado)
+    if (lastAnalysis && lastAnalysis.energyProfile && lastAnalysis.energyProfile.length) {
+      waveformWrap.style.display = "block";
+      drawWaveform(lastAnalysis.energyProfile);
+    }
   }
 
   function closeModal() {
@@ -291,40 +432,65 @@
     });
   });
 
-  // Seleção de cor de destaque
+  // Seleção de cor de destaque (dots fixos)
   colorDots.forEach((dot) => {
     dot.addEventListener("click", () => {
       colorDots.forEach((d) => d.classList.remove("active"));
       dot.classList.add("active");
       currentAccent = dot.dataset.color;
-      currentConfig.accent = currentAccent;
-      document.documentElement.style.setProperty("--accent", currentAccent);
+      applyAccent(currentAccent);
     });
   });
+
+  // Cor personalizada via color picker
+  customColorPicker.addEventListener("input", () => {
+    colorDots.forEach((d) => d.classList.remove("active"));
+    currentAccent = customColorPicker.value;
+    applyAccent(currentAccent);
+  });
+
+  function applyAccent(color) {
+    currentConfig.accent = color;
+    document.documentElement.style.setProperty("--accent", color);
+    // Redesenha waveform com nova cor
+    if (lastAnalysis && lastAnalysis.energyProfile) {
+      drawWaveform(lastAnalysis.energyProfile);
+    }
+  }
 
   // Botão: Gerar Cenas Automáticas do Áudio
   btnAutoGenerate.addEventListener("click", () => {
     const duration = AudioController.getDuration() || (lastAnalysis && lastAnalysis.duration) || 30;
     const title = currentConfig.title || "VISUAL EXPERIMENT";
 
-    const scenes = Generator.generateProcedural(
-      duration,
-      lastAnalysis || {},
-      title,
-      themeSelect.value
-    );
+    const progress = runFakeProgress();
 
-    currentConfig.scenes = scenes;
-    Animation.build(currentConfig);
-    Animation.update(AudioController.getCurrentTime(), currentConfig);
-    updateSceneListUI();
-    closeModal();
-    showToast(`⚡ ${scenes.length} cenas geradas e sincronizadas!`);
+    // Defer para deixar a barra de progresso aparecer antes do processamento síncrono
+    setTimeout(() => {
+      const scenes = Generator.generateProcedural(
+        duration,
+        lastAnalysis || {},
+        title,
+        themeSelect.value
+      );
+
+      currentConfig.scenes = scenes;
+      Animation.build(currentConfig);
+      Animation.update(AudioController.getCurrentTime(), currentConfig);
+      updateSceneListUI();
+
+      progress.complete();
+
+      setTimeout(() => {
+        closeModal();
+        showToast(`⚡ ${scenes.length} cenas geradas e sincronizadas!`);
+      }, 450);
+    }, 80);
   });
 
   // Botão: Sincronizar Letra Personalizada ou LRC
   btnApplyCustomLyrics.addEventListener("click", () => {
-    const text = lyricsInput.value.trim();
+    const text = LyricsEditor.getValue().trim();
     if (!text) {
       showToast("Digite ou cole a letra antes de sincronizar.");
       return;
@@ -358,14 +524,23 @@
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      lyricsInput.value = evt.target.result;
+      LyricsEditor.setValue(evt.target.result);
       showToast("Arquivo de letra carregado no editor.");
     };
     reader.readAsText(file);
     lrcFileInput.value = "";
   });
 
-  // Reconhecimento de fala / Ditar com microfone (Web Speech API)
+  // ---- Reconhecimento de Fala ----
+
+  function stopActiveRecognition() {
+    if (activeRecognition) {
+      try { activeRecognition.stop(); } catch (_) {}
+      activeRecognition = null;
+    }
+  }
+
+  // Botão: Ditar com Microfone
   btnSpeechToText.addEventListener("click", () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -373,36 +548,155 @@
       return;
     }
 
+    // Se já estiver gravando, parar
+    if (activeRecognition) {
+      stopActiveRecognition();
+      LyricsEditor.clearInterim();
+      btnSpeechToText.textContent = "🎙️ DITAR / VOZ";
+      showToast("Gravação finalizada.");
+      return;
+    }
+
     const recognition = new SpeechRecognition();
     recognition.lang = "pt-BR";
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
 
+    activeRecognition = recognition;
     showToast("🎙️ Ouvindo... Fale a letra da música.");
-    btnSpeechToText.textContent = "🔴 OUVINDO...";
+    btnSpeechToText.textContent = "🔴 PARAR";
 
     recognition.onresult = (event) => {
-      let transcript = "";
+      let interimText = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript + "\n";
+        const result = event.results[i];
+        if (result.isFinal) {
+          LyricsEditor.insertAtCursor(result[0].transcript.trim());
+          LyricsEditor.clearInterim();
+        } else {
+          interimText += result[0].transcript;
+        }
       }
-      lyricsInput.value = (lyricsInput.value ? lyricsInput.value + "\n" : "") + transcript;
+      if (interimText) {
+        LyricsEditor.setInterimText("…" + interimText);
+      }
     };
 
     recognition.onerror = (err) => {
       console.warn("Erro no reconhecimento de voz:", err);
       btnSpeechToText.textContent = "🎙️ DITAR / VOZ";
+      LyricsEditor.clearInterim();
+      activeRecognition = null;
       showToast("Gravação finalizada ou sem sinal.");
     };
 
     recognition.onend = () => {
       btnSpeechToText.textContent = "🎙️ DITAR / VOZ";
+      LyricsEditor.clearInterim();
+      activeRecognition = null;
     };
 
     try {
       recognition.start();
     } catch (e) {
       recognition.stop();
+      activeRecognition = null;
+    }
+  });
+
+  // Botão: Importar de Áudio (transcrição sincronizada com timestamps LRC)
+  btnImportFromAudio.addEventListener("click", () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast("Reconhecimento de fala não suportado neste navegador.");
+      return;
+    }
+
+    // Se já estiver gravando de áudio, parar
+    if (activeRecognition) {
+      stopActiveRecognition();
+      LyricsEditor.clearInterim();
+      AudioController.pause();
+      stopFrameLoop();
+      playButton.textContent = "PLAY";
+      btnImportFromAudio.textContent = "🔄 IMPORTAR DE ÁUDIO";
+      showToast("Transcrição finalizada.");
+      return;
+    }
+
+    const audioEl = AudioController.getElement();
+    if (!audioEl.src || audioEl.src === window.location.href) {
+      showToast("Carregue um arquivo de áudio primeiro!");
+      return;
+    }
+
+    // Voltar para o início e iniciar
+    AudioController.seek(0);
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    activeRecognition = recognition;
+    btnImportFromAudio.textContent = "⏹ PARAR TRANSCRIÇÃO";
+    showToast("🔄 Transcrevendo áudio com timestamps LRC...");
+
+    recognition.onresult = (event) => {
+      let interimText = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          const ts = formatLrcTimestamp(AudioController.getCurrentTime());
+          const line = `${ts} ${result[0].transcript.trim()}`;
+          // Appenda ao final do editor
+          const current = LyricsEditor.getValue();
+          const prefix = current && !current.endsWith("\n") ? "\n" : "";
+          LyricsEditor.setValue(current + prefix + line + "\n");
+          LyricsEditor.clearInterim();
+        } else {
+          interimText += result[0].transcript;
+        }
+      }
+      if (interimText) {
+        const ts = formatLrcTimestamp(AudioController.getCurrentTime());
+        LyricsEditor.setInterimText(`${ts} …${interimText}`);
+      }
+    };
+
+
+    recognition.onerror = (err) => {
+      console.warn("Erro na transcrição:", err);
+      btnImportFromAudio.textContent = "🔄 IMPORTAR DE ÁUDIO";
+      LyricsEditor.clearInterim();
+      activeRecognition = null;
+      AudioController.pause();
+      stopFrameLoop();
+      playButton.textContent = "PLAY";
+    };
+
+    recognition.onend = () => {
+      btnImportFromAudio.textContent = "🔄 IMPORTAR DE ÁUDIO";
+      LyricsEditor.clearInterim();
+      activeRecognition = null;
+    };
+
+    try {
+      recognition.start();
+      // Iniciar reprodução do áudio após pequeno delay
+      setTimeout(async () => {
+        try {
+          await AudioController.play();
+          playButton.textContent = "PAUSE";
+          stopFrameLoop();
+          updateFrame();
+        } catch (err) {
+          console.error("Erro ao reproduzir para transcrição:", err);
+        }
+      }, 300);
+    } catch (e) {
+      recognition.stop();
+      activeRecognition = null;
     }
   });
 
@@ -432,10 +726,26 @@
             <span>${formatTime(s.start)} → ${formatTime(s.end)}</span>
           </div>
           <div class="scene-item-body">${preview}</div>
+          <div class="scene-item-actions">
+            <button type="button" class="scene-jump-btn" data-start="${s.start}" title="Pular para esta cena">▶ PULAR</button>
+          </div>
         </div>
       `;
       })
       .join("");
+
+    // Vincular botões "PULAR" após renderizar
+    scenesList.querySelectorAll(".scene-jump-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const start = parseFloat(btn.dataset.start);
+        AudioController.seek(start);
+        Animation.update(start, currentConfig);
+        const dur = AudioController.getDuration();
+        timeLabel.textContent = `${formatTime(start)} / ${formatTime(dur)}`;
+        if (dur > 0) timelineFill.style.width = `${(start / dur) * 100}%`;
+        closeModal();
+      });
+    });
   }
 
   // Exportar JSON
